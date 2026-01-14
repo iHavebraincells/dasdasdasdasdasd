@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Study Hub</title>
+<script src="/uv/uv.bundle.js"></script>
+<script src="/uv/uv.config.js"></script>
+<script src="/uv/register-sw.js"></script>
+<style>
+body{background:#0d1117;color:white;font-family:Arial;text-align:center}
+input{width:60%;padding:12px;font-size:16px}
+button{padding:12px 20px}
+iframe{width:100%;height:80vh;border:none;margin-top:20px}
+</style>
+</head>
+<body>
+<h1>Ultraviolet Proxy</h1>
+<input id="url" placeholder="google.com">
+<button onclick="go()">Go</button>
+<iframe id="frame"></iframe>
+<script>
+async function go(){
+  let url=document.getElementById('url').value.trim()
+  if(!url.startsWith('http')) url='https://'+url
+  await navigator.serviceWorker.ready
+  frame.src=__uv$config.prefix+__uv$config.encodeUrl(url)
+}
+</script>
+</body>
+</html>
