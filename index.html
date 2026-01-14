@@ -1,30 +1,151 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Study Hub</title>
-<script src="/uv/uv.bundle.js"></script>
-<script src="/uv/uv.config.js"></script>
-<script src="/uv/register-sw.js"></script>
-<style>
-body{background:#0d1117;color:white;font-family:Arial;text-align:center}
-input{width:60%;padding:12px;font-size:16px}
-button{padding:12px 20px}
-iframe{width:100%;height:80vh;border:none;margin-top:20px}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Study Hub - Unblocked Games</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #0d1117; color: #c9d1d9; }
+    .header { background: #161b22; padding: 15px; text-align: center; border-bottom: 1px solid #30363d; }
+    .search { width: 90%; max-width: 600px; padding: 12px; font-size: 18px; border-radius: 6px; border: 1px solid #30363d; background: #161b22; color: white; }
+    .games-grid { display: flex; flex-wrap: wrap; gap: 15px; padding: 20px; justify-content: center; }
+    .game-card { width: 140px; text-align: center; cursor: pointer; transition: transform 0.2s; background: #161b22; border-radius: 8px; padding: 8px; border: 1px solid #30363d; }
+    .game-card:hover { transform: scale(1.05); }
+    .game-card img { width: 100%; height: 120px; object-fit: cover; border-radius: 6px; }
+    .game-card p { margin: 8px 0 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #iframeContainer { margin: 20px; }
+    iframe { width: 100%; height: 80vh; border: none; background: #000; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+    .toggle { margin: 20px 0; text-align: center; }
+  </style>
 </head>
 <body>
-<h1>Ultraviolet Proxy</h1>
-<input id="url" placeholder="google.com">
-<button onclick="go()">Go</button>
-<iframe id="frame"></iframe>
-<script>
-async function go(){
-  let url=document.getElementById('url').value.trim()
-  if(!url.startsWith('http')) url='https://'+url
-  await navigator.serviceWorker.ready
-  frame.src=__uv$config.prefix+__uv$config.encodeUrl(url)
+  <div class="header">
+    <h1>Study Hub</h1>
+    <input class="search" id="gameSearch" placeholder="Search for a game..." oninput="filterGames()">
+  </div>
+
+  <div id="gamesGrid" class="games-grid"></div>
+
+  <div id="iframeContainer"></div>
+
+  <div class="toggle">
+    <label>
+      <input type="checkbox" id="antiClose" onchange="toggleAntiClose(this.checked)">
+      Prevent tab close
+    </label>
+    <p id="antiStatus" style="color:#00ff88;">Anti-close is OFF</p>
+  </div>
+
+  <script>
+    const games = [
+      { name: '10 Minutes Till Dawn', url: 'https://10-minutes-till-dawn.github.io', thumb: 'https://via.placeholder.com/140/FF5722/FFF?text=10MTD' },
+      { name: '2048', url: 'https://play2048.co', thumb: 'https://via.placeholder.com/140/4CAF50/FFFFFF?text=2048' },
+      { name: 'Basket Random', url: 'https://basket-random.github.io', thumb: 'https://via.placeholder.com/140/FFC107/000?text=Basket' },
+      { name: 'Basketball Legends', url: 'https://basketball-legends.github.io', thumb: 'https://via.placeholder.com/140/FF9800/000?text=Basketball' },
+      { name: 'BitLife', url: 'https://bitlife-life-simulator.github.io', thumb: 'https://via.placeholder.com/140/795548/FFF?text=BitLife' },
+      { name: 'Cluster Rush', thumb: 'https://via.placeholder.com/140/00BCD4/000?text=Cluster', url: 'https://cluster-rush.github.io' },
+      { name: 'Cookie Clicker', url: 'https://orteil.dashnet.org/cookieclicker/', thumb: 'https://via.placeholder.com/140/FF9800/000?text=Cookie' },
+      { name: 'Doom', url: 'https://doom.github.io', thumb: 'https://via.placeholder.com/140/F44336/FFF?text=Doom' },
+      { name: 'Drift Hunters', url: 'https://drift-hunters.github.io', thumb: 'https://via.placeholder.com/140/E91E63/FFF?text=Drift' },
+      { name: 'FNAF', url: 'https://fnaf-world.github.io', thumb: 'https://via.placeholder.com/140/F44336/FFF?text=FNAF' },
+      { name: 'Geometry Dash', url: 'https://geometry-dash.github.io', thumb: 'https://via.placeholder.com/140/FF5722/FFF?text=Geometry' },
+      { name: 'Infinite Craft', url: 'https://infinitecraft.io', thumb: 'https://via.placeholder.com/140/00BCD4/000?text=Infinite' },
+      { name: 'Osu!', url: 'https://osu.ppy.sh', thumb: 'https://via.placeholder.com/140/9C27B0/FFF?text=Osu' },
+      { name: 'Portal', url: 'https://portal.github.io', thumb: 'https://via.placeholder.com/140/FF5722/FFF?text=Portal' },
+      { name: 'Roblox', url: 'https://now.gg/roblox', thumb: 'https://via.placeholder.com/140/673AB7/FFF?text=Roblox' },
+      { name: 'Slope', url: 'https://slope-game.github.io', thumb: 'https://via.placeholder.com/140/FF5722/FFFFFF?text=Slope' },
+      { name: 'Smash Karts', url: 'https://smashkarts.io', thumb: 'https://via.placeholder.com/140/9C27B0/FFF?text=Smash' },
+      { name: 'Snow Rider 3D', url: 'https://snow-rider.github.io', thumb: 'https://via.placeholder.com/140/00BCD4/000?text=Snow' },
+      { name: 'Super Mario', url: 'https://super-mario.github.io', thumb: 'https://via.placeholder.com/140/F44336/FFF?text=Mario' },
+      { name: 'Tiny Fishing', url: 'https://tiny-fishing.github.io', thumb: 'https://via.placeholder.com/140/2196F3/FFF?text=Tiny' },
+      { name: 'Wheelie 4', url: 'https://wheelie4.github.io', thumb: 'https://via.placeholder.com/140/4CAF50/FFF?text=Wheelie' },
+      { name: 'ZombsRoyale', url: 'https://zombsroyale.io', thumb: 'https://via.placeholder.com/140/673AB7/FFF?text=Zombs' },
+      { name: 'Agar.io', url: 'https://agar.io', thumb: 'https://via.placeholder.com/140/4CAF50/FFF?text=Agar' },
+      { name: 'Slither.io', url: 'https://slither.io', thumb: 'https://via.placeholder.com/140/9C27B0/FFF?text=Slither' },
+      { name: 'Hole.io', url: 'https://hole.io', thumb: 'https://via.placeholder.com/140/FFEB3B/000?text=Hole' },
+      { name: 'Krunker', url: 'https://krunker.io', thumb: 'https://via.placeholder.com/140/000/FFF?text=Krunker' },
+      { name: 'Paper.io', url: 'https://paper-io.github.io', thumb: 'https://via.placeholder.com/140/2196F3/FFF?text=Paper' },
+      { name: 'Run 3', url: 'https://run3.github.io', thumb: 'https://via.placeholder.com/140/FF5722/FFF?text=Run' },
+      { name: 'Doodle Jump', url: 'https://doodle-jump.github.io', thumb: 'https://via.placeholder.com/140/673AB7/FFF?text=Doodle' },
+      { name: 'Crossy Road', url: 'https://crossy-road.github.io', thumb: 'https://via.placeholder.com/140/8BC34A/000?text=Crossy' },
+      { name: 'Flappy Bird', url: 'https://flappybird.io', thumb: 'https://via.placeholder.com/140/009688/FFF?text=Flappy' },
+      { name: 'Pac-Man', url: 'https://pacman.com', thumb: 'https://via.placeholder.com/140/FFEB3B/000?text=Pac-Man' },
+      { name: 'Tetris', url: 'https://tetris.com/play-tetris', thumb: 'https://via.placeholder.com/140/3F51B5/FFF?text=Tetris' },
+      { name: 'Minecraft Classic', url: 'https://classic.minecraft.net', thumb: 'https://via.placeholder.com/140/795548/FFF?text=Minecraft' }
+        ];
+
+        function showTab(tabId) {
+          document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+          document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+          document.getElementById(tabId).style.display = 'block';
+          document.querySelector('.tab[onclick="showTab(\'' + tabId + '\')"]').classList.add('active');
+          if (tabId === 'games') loadGames();
+        }
+
+        function loadGames(filter = '') {
+          const grid = document.getElementById('gamesGrid');
+          grid.innerHTML = '';
+          games.filter(g => g.name.toLowerCase().includes(filter.toLowerCase())).forEach(game => {
+            const card = document.createElement('div');
+            card.className = 'game-card';
+            card.innerHTML = `
+              <img src="${game.thumb}" alt="${game.name}" onerror="this.src='https://via.placeholder.com/140/333/FFF?text=' + encodeURIComponent('${game.name}')">
+              <p>${game.name}</p>
+            `;
+            card.onclick = () => {
+              const iframe = document.createElement('iframe');
+              iframe.src = '/' + encodeURIComponent(game.url);
+              iframe.style.width = '100%';
+              iframe.style.height = '80vh';
+              document.getElementById('proxyFrame').innerHTML = '';
+              document.getElementById('proxyFrame').appendChild(iframe);
+            };
+            grid.appendChild(card);
+          });
+        }
+
+        function proxyGo() {
+          let val = document.getElementById('proxyInput').value.trim();
+          if (!val) return alert('Enter a URL!');
+          if (!val.startsWith('http')) val = 'https://' + val;
+          const iframe = document.createElement('iframe');
+          iframe.src = '/' + encodeURIComponent(val);
+          iframe.style.width = '100%';
+          iframe.style.height = '80vh';
+          document.getElementById('proxyFrame').innerHTML = '';
+          document.getElementById('proxyFrame').appendChild(iframe);
+        }
+
+        function filterGames() {
+          const filter = document.getElementById('gameSearch').value;
+          loadGames(filter);
+        }
+
+        // Anti-Tab-Close
+        let antiCloseEnabled = false;
+
+        function toggleAntiClose(enabled) {
+          antiCloseEnabled = enabled;
+          document.getElementById('antiStatus').textContent = enabled ? 'Anti-close is ON' : 'Anti-close is OFF';
+          if (enabled) {
+            window.addEventListener('beforeunload', beforeUnloadHandler);
+          } else {
+            window.removeEventListener('beforeunload', beforeUnloadHandler);
+          }
+        }
+
+        function beforeUnloadHandler(e) {
+          e.preventDefault();
+          e.returnValue = '';
+          return 'Are you sure you want to leave? Your work may not be saved.';
+        }
+
+        // Load games on page load
+        window.onload = () => loadGames();
+      </script>
+    </body>
+    </html>
+  `, {
+    headers: { 'Content-Type': 'text/html;charset=UTF-8' }
+  })
 }
-</script>
-</body>
-</html>
